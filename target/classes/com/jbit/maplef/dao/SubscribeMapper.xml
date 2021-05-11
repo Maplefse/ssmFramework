@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jbit.maplef.dao.SubscribeMapper" >
+
+    <update id="updateBorrowMesYes">
+        update seat_borrow set borrow_pass = 2 where booked_id = #{booked_id}
+    </update>
+    <update id="updateBookedMesYes">
+        update seat_booked set booked_pass = 2 where booked_id = #{booked_id}
+    </update>
+    <update id="updateBorrowMesNo">
+        update seat_borrow set borrow_pass = 3 where booked_id = #{booked_id}
+    </update>
+    <update id="updateBookedMesNo">
+        update seat_booked set booked_pass = 3 where booked_id = #{booked_id}
+    </update>
+
+
+    <delete id="deleteBorrowMes">delete from seat_borrow where booked_id = #{booked_id}</delete>
+
+    <delete id="deleteBookedMes">delete from seat_booked where booked_id = #{booked_id}</delete>
+
+
+    <select id="getSeatBooked" resultMap="Booked">
+        SELECT (@i:=@i) `table`, booked_id, booked.user_id,`user`.`user_name`, admin_id,  booked.seat_id, booked_date, booked_time, booked_pass,  seat_code,user.`user_integrity`
+        FROM (SELECT @i:=2) AS i , seat_booked booked,reading_room room,`user`
+        WHERE booked.seat_id = room.seat_id
+        AND booked.`user_id` = user.`user_id`
+        <if test="pass!=null &amp;&amp; pass!=''">
+        <choose>
+        <when test="pass == 1">
+            and booked_pass != 0
+        </when>
+        <when test="pass>1">
+            and booked_pass != 1 and booked_pass != 0
+        </when>
+        <otherwise>
+            and booked_pass &lt;=1
+        </otherwise>
+        </choose>
+        </if>
+        /*(SELECT @i:=1) AS i   : 给查询结果添加一个列*/
+    </select>
+
+    <select id="getSeatBorrow" resultMap="SeatBorrow">
+        SELECT (@i:=@i) `table`, booked_id, borrow.user_id,`user`.`user_name`, admin_id,borrow_date,borrow_time,borrow_pass,book_name,user.`user_integrity`
+        FROM (SELECT @i:=1) AS i , seat_borrow borrow ,books book,`user`
+        WHERE borrow.book_id = book.book_id
+        AND borrow.`user_id` = user.`user_id`
+        <if test="pass!=null &amp;&amp; pass!=''">
+            <!--已审核和未审核区分判断-->
+                <choose>
+                <!--1:已读
+                    >1:已审核
+                    其余为未读信息
+                -->
+                    <when test="pass == 1">
+                        and borrow_pass != 0
+                    </when>
+                    <when test="pass>1">
+                        and borrow_pass != 1 and borrow_pass != 0
+                    </when>
+                    <otherwise>
+                        and borrow_pass &lt;= 1
+                    </otherwise>
+                </choose>
+        </if>
+    </select>
+
+    <select id="getMessage" resultType="java.lang.Integer">
+        select count(*) from seat_borrow where borrow_pass = 0
+    </select>
+
+    <select id="getSeatMessage" resultType="java.lang.Integer">
+        select count(*) from seat_booked where booked_pass = 0
+    </select>
+
+    <!--借书预约表手动注入-->
+    <resultMap id="SeatBorrow" type="com.jbit.maplef.entity.Appointment">
+        <result column="booked_id" property="id" />
+        <result column="user_id" property="user_id" />
+        <result column="user_name" property="user_name" />
+        <result column="admin_id" property="admin_id" />
+        <result column="book_id" property="type_id" />
+        <result column="borrow_date" property="date" />
+        <result column="borrow_time" property="time"/>
+        <result column="borrow_pass" property="pass"/>
+        <result column="book_name" property="typeName"/>
+        <result column="table" property="table"/>
+        <result column="user_integrity" property="integrity"/>
+    </resultMap>
+
+    <!--座位预约表手动注入-->
+    <resultMap id="Booked" type="com.jbit.maplef.entity.Appointment">
+        <result column="booked_id" property="id" />
+        <result column="user_id" property="user_id" />
+        <result column="user_name" property="user_name" />
+        <result column="admin_id" property="admin_id" />
+        <result column="seat_id" property="type_id" />
+        <result column="booked_date" property="date" />
+        <result column="booked_time" property="time"/>
+        <result column="booked_pass" property="pass"/>
+        <result column="seat_code" property="typeName"/>
+        <result column="table" property="table"/>
+        <result column="user_integrity" property="integrity"/>
+    </resultMap>
+
+</mapper>
